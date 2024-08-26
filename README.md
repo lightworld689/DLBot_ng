@@ -24,7 +24,7 @@ DLBot_ng 是一个基于 WebSocket 的聊天机器人，用于连接到 hack.cha
 MyNickname
 MyPassword
 MyChannel
-["Turst1", "Trust2"]
+["Trust1", "Trust2"]
 ```
 
 ## 日志
