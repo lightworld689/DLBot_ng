@@ -1,14 +1,13 @@
-import asyncio
-import websockets
-import json
 import os
-import tkinter as tk
-from tkinter import scrolledtext
-import threading
-import time
 import sys
-
-
+import json
+import time
+import asyncio
+import threading
+import websockets
+import tkinter as tk
+from load import hotreload
+from tkinter import scrolledtext
 
 if not os.path.exists("log_status.txt"):
     with open("log_status.txt", "w", encoding="utf-8") as status_file:
@@ -18,18 +17,6 @@ with open("log_status.txt", "r+", encoding="utf-8") as status_file:
     status = status_file.read()
     status_file.seek(0)
     status_file.write("0")
-
-def hotreload(new_code_file: str) -> int:
-    with open(new_code_file, 'r', encoding='utf-8') as raw_code:
-        code = raw_code.read()
-    try:
-        exec(code, globals())
-        return 0
-    except Exception as e:
-        print(f"Error executing code from file {new_code_file}: {e}")
-        return -1
-
-
 
 async def join_channel(nick, password, channel):
     uri = "wss://hack.chat/chat-ws"
