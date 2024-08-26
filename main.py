@@ -24,6 +24,10 @@ async def join_channel(nick, password, channel):
         with open("log_status.txt", "r+", encoding="utf-8") as status_file:
             status = status_file.read()
             if status == "0":
+                if not os.path.exists("log.log"):
+                    open("log.log", "w", encoding="utf-8").close()
+                if not os.path.exists("msg.log"):
+                    open("msg.log", "w", encoding="utf-8").close()
                 with open("log.log", "a", encoding="utf-8") as log_file:
                     log_file.write(f"----------------- {time.strftime('%Y-%m-%d %H:%M:%S')} -----------------\n")
                 with open("msg.log", "a", encoding="utf-8") as log_file:
