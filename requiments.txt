@@ -1,0 +1,8 @@
+asyncio
+websockets
+json
+os
+tkinter
+threading
+time
+sys
