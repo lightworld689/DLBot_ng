@@ -7,6 +7,10 @@ from tkinter import scrolledtext
 import threading
 import time
 
+if not os.path.exists("log_status.txt"):
+    with open("log_status.txt", "w", encoding="utf-8") as status_file:
+        status_file.write("0")
+
 with open("log_status.txt", "r+", encoding="utf-8") as status_file:
     status = status_file.read()
     status_file.seek(0)
