@@ -10,7 +10,7 @@ def hotreload(new_code_file: str) -> int:
     """
     try:
         # Open and read the new code file
-        with open(new_code_file, 'r') as code_file:
+        with open(new_code_file, 'r', encoding='utf-8') as code_file:
             code = code_file.read()
         
         # Execute the code
