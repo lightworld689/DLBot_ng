@@ -6,6 +6,9 @@ import tkinter as tk
 from tkinter import scrolledtext
 import threading
 import time
+import sys
+
+
 
 if not os.path.exists("log_status.txt"):
     with open("log_status.txt", "w", encoding="utf-8") as status_file:
@@ -68,9 +71,15 @@ async def join_channel(nick, password, channel):
                 message = json.loads(response)
                 
                 if message.get("cmd") == "warn" and "You are joining channels too fast. Wait a moment and try again." in message.get("text", ""):
-                    for i in range(60, 0, -1):
+                    for i in range(30, 0, -20):
                         log_message("系统日志", f"Joining too fast, waiting for {i} seconds...")
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(10)
+                    break
+
+                if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
+                    for i in range(60, 0, -20):
+                        log_message("系统日志", f"Rate Limited, waiting for {i} seconds...")
+                        await asyncio.sleep(10)
                     break
                 
                 if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
@@ -88,7 +97,7 @@ async def join_channel(nick, password, channel):
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     trip = message.get("trip")
-                    if trip in ["vuPizP", "7Ty7y9"]:
+                    if trip in trustedusers:
                         text = message.get("text")
                         if text and "whispered: /chat " in text:
                             msg = text.split("whispered: /chat ", 1)[1]
@@ -96,7 +105,26 @@ async def join_channel(nick, password, channel):
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
                 
-
+                if message.get("cmd") == "chat" and message.get("text") == "$help":
+                    help_message = {
+                        "cmd": "chat",
+                        "text": """| 指令 | 用途 | 用法 | 需要的权限 |
+| --- | --- | --- | --- |
+| \\$help | 显示本页面 | \\$help | 无 |""",
+                        "customId": "0"
+                    }
+                    await websocket.send(json.dumps(help_message))
+                    log_message("发送消息", json.dumps(help_message))
+                
+                if message.get("cmd") == "chat" and message.get("text") == "$reload":
+                    trip = message.get("trip")
+                    if trip in trustedusers:
+                        log_message("系统日志", "Trusted user initiated reload, reloading...")
+                        os.execv(sys.executable, ['python'] + sys.argv)
+                    else:
+                        error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 你在干什么？你好像不是一个被信任的用户。", "customId": "0"}
+                        await websocket.send(json.dumps(error_message))
+                        log_message("发送消息", json.dumps(error_message))
 
 if os.path.exists("user.txt"):
     with open("user.txt", "r", encoding="utf-8") as user_file:
@@ -104,6 +132,7 @@ if os.path.exists("user.txt"):
         nick = lines[0].strip()
         password = lines[1].strip()
         channel = lines[2].strip()
+        trustedusers = json.loads(lines[3].strip())
 
     asyncio.run(join_channel(nick, password, channel))
 else:
