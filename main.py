@@ -98,10 +98,13 @@ async def join_channel(nick, password, channel):
                 
 
 
-with open("user.txt", "r", encoding="utf-8") as user_file:
-    lines = user_file.readlines()
-    nick = lines[0].strip()
-    password = lines[1].strip()
-    channel = lines[2].strip()
+if os.path.exists("user.txt"):
+    with open("user.txt", "r", encoding="utf-8") as user_file:
+        lines = user_file.readlines()
+        nick = lines[0].strip()
+        password = lines[1].strip()
+        channel = lines[2].strip()
 
-asyncio.run(join_channel(nick, password, channel))
+    asyncio.run(join_channel(nick, password, channel))
+else:
+    print("Error: 'user.txt' file not found. Please ensure the file exists.")
