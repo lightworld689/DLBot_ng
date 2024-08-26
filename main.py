@@ -6,7 +6,7 @@ import asyncio
 import threading
 import websockets
 import tkinter as tk
-from load import hotreload
+from reload import hotreload
 from tkinter import scrolledtext
 
 if not os.path.exists("log_status.txt"):
@@ -60,73 +60,77 @@ async def join_channel(nick, password, channel):
     
     async def handle_messages(websocket):
         while True:
-            response = await websocket.recv()
-            log_message("收到消息", response)
-            message = json.loads(response)
-            
-            if message.get("cmd") == "warn" and "You are joining channels too fast. Wait a moment and try again." in message.get("text", ""):
-                for i in range(30, 0, -20):
-                    log_message("系统日志", f"Joining too fast, waiting for {i} seconds...")
-                    await asyncio.sleep(10)
-                break
+            try:
+                response = await websocket.recv()
+                log_message("收到消息", response)
+                message = json.loads(response)
+                
+                if message.get("cmd") == "warn" and "You are joining channels too fast. Wait a moment and try again." in message.get("text", ""):
+                    for i in range(30, 0, -20):
+                        log_message("系统日志", f"Joining too fast, waiting for {i} seconds...")
+                        await asyncio.sleep(10)
+                    break
 
-            if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
-                for i in range(60, 0, -20):
-                    log_message("系统日志", f"Rate Limited, waiting for {i} seconds...")
-                    await asyncio.sleep(10)
-                break
-            
-            if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
-                log_message("系统日志", "Nickname taken, modifying nickname and retrying...")
-                if "#" in full_nick:
-                    full_nick = full_nick.replace("#", "_#", 1)
-                else:
-                    full_nick += "_"
-                break
-            
-            if message.get("cmd") == "onlineSet":
-                startup_message = {"cmd": "chat", "text": "DLBot，启动成功。", "customId": "0"}
-                await websocket.send(json.dumps(startup_message))
-                log_message("发送消息", json.dumps(startup_message))
-            
-            if message.get("cmd") == "info" and message.get("type") == "whisper":
-                trip = message.get("trip")
-                if trip in trustedusers:
-                    text = message.get("text")
-                    if text and "whispered: /chat " in text:
-                        msg = text.split("whispered: /chat ", 1)[1]
-                        chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
-                        await websocket.send(json.dumps(chat_message))
-                        log_message("发送消息", json.dumps(chat_message))
-            
-            if message.get("cmd") == "chat" and message.get("text") == "$help":
-                help_message = {
-                    "cmd": "chat",
-                    "text": """| 指令 | 用途 | 用法 | 需要的权限 |
+                if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
+                    for i in range(60, 0, -20):
+                        log_message("系统日志", f"Rate Limited, waiting for {i} seconds...")
+                        await asyncio.sleep(10)
+                    break
+                
+                if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
+                    log_message("系统日志", "Nickname taken, modifying nickname and retrying...")
+                    if "#" in full_nick:
+                        full_nick = full_nick.replace("#", "_#", 1)
+                    else:
+                        full_nick += "_"
+                    break
+                
+                if message.get("cmd") == "onlineSet":
+                    startup_message = {"cmd": "chat", "text": "DLBot，启动成功。", "customId": "0"}
+                    await websocket.send(json.dumps(startup_message))
+                    log_message("发送消息", json.dumps(startup_message))
+                
+                if message.get("cmd") == "info" and message.get("type") == "whisper":
+                    trip = message.get("trip")
+                    if trip in trustedusers:
+                        text = message.get("text")
+                        if text and "whispered: /chat " in text:
+                            msg = text.split("whispered: /chat ", 1)[1]
+                            chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
+                            await websocket.send(json.dumps(chat_message))
+                            log_message("发送消息", json.dumps(chat_message))
+                
+                if message.get("cmd") == "chat" and message.get("text") == "$help":
+                    help_message = {
+                        "cmd": "chat",
+                        "text": """| 指令 | 用途 | 用法 | 需要的权限 |
 | --- | --- | --- | --- |
 | \\$help | 显示本页面 | \\$help | 无 |""",
-                    "customId": "0"
-                }
-                await websocket.send(json.dumps(help_message))
-                log_message("发送消息", json.dumps(help_message))
-            
-            if message.get("cmd") == "chat" and message.get("text") == "$reload":
-                trip = message.get("trip")
-                if trip in trustedusers:
-                    log_message("系统日志", "Trusted user initiated reload, reloading...")
-                    reload_status = hotreload("new_def.txt")
-                    if reload_status == 0:
-                        success_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载成功。", "customId": "0"}
-                        await websocket.send(json.dumps(success_message))
-                        log_message("发送消息", json.dumps(success_message))
+                        "customId": "0"
+                    }
+                    await websocket.send(json.dumps(help_message))
+                    log_message("发送消息", json.dumps(help_message))
+                
+                if message.get("cmd") == "chat" and message.get("text") == "$reload":
+                    trip = message.get("trip")
+                    if trip in trustedusers:
+                        log_message("系统日志", "Trusted user initiated reload, reloading...")
+                        reload_status = hotreload("new_def.txt")
+                        if reload_status == 0:
+                            success_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载成功。", "customId": "0"}
+                            await websocket.send(json.dumps(success_message))
+                            log_message("发送消息", json.dumps(success_message))
+                        else:
+                            error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败。", "customId": "0"}
+                            await websocket.send(json.dumps(error_message))
+                            log_message("发送消息", json.dumps(error_message))
                     else:
-                        error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败。", "customId": "0"}
+                        error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 你在干什么？你好像不是一个被信任的用户。", "customId": "0"}
                         await websocket.send(json.dumps(error_message))
                         log_message("发送消息", json.dumps(error_message))
-                else:
-                    error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 你在干什么？你好像不是一个被信任的用户。", "customId": "0"}
-                    await websocket.send(json.dumps(error_message))
-                    log_message("发送消息", json.dumps(error_message))
+            except websockets.ConnectionClosed:
+                log_message("系统日志", "Connection lost, attempting to reconnect...")
+                break
 
     while True:
         async with websockets.connect(uri) as websocket:
