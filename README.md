@@ -13,6 +13,26 @@ DLBot_ng 是一个基于 WebSocket 的聊天机器人，用于连接到 hack.cha
 
 在运行机器人之前，请确保在 `user.txt` 文件中正确配置以下内容：
 
+1. 用户名 (`username:`)
+2. 密码 (`password:`)
+3. 频道名称 (`channel:`)
+4. 信任用户识别码列表 (`trustedusers:`)
+5. WebSocket 链接 (`ws_link:`)
+
+示例 `user.txt` 内容：
+
+```
+username: MyNickname
+password: MyPassword
+channel: MyChannel
+trustedusers: ["Trust1", "Trust2"]
+ws_link: wss://hack.chat/chat-ws
+```
+
+
+
+在运行机器人之前，请确保在 `user.txt` 文件中正确配置以下内容：
+
 1. 昵称
 2. 密码
 3. 频道名称

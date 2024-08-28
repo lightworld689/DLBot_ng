@@ -18,8 +18,8 @@ with open("log_status.txt", "r+", encoding="utf-8") as status_file:
     status_file.seek(0)
     status_file.write("0")
 
-async def join_channel(nick, password, channel):
-    uri = "wss://hack.chat/chat-ws"
+async def join_channel(nick, password, channel, ws_link):
+    uri = ws_link
     full_nick = f"{nick}#{password}"
 
     def log_message(type, message):
@@ -66,15 +66,15 @@ async def join_channel(nick, password, channel):
                 message = json.loads(response)
                 
                 if message.get("cmd") == "warn" and "You are joining channels too fast. Wait a moment and try again." in message.get("text", ""):
-                    for i in range(30, 0, -20):
-                        log_message("系统日志", f"Joining too fast, waiting for {i} seconds...")
-                        await asyncio.sleep(10)
+                    #for i in range(30, 0, -20):
+                    #    log_message("系统日志", f"Joining too fast, waiting for {i} seconds...")
+                    #    await asyncio.sleep(10)
                     break
 
                 if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
-                    for i in range(60, 0, -20):
-                        log_message("系统日志", f"Rate Limited, waiting for {i} seconds...")
-                        await asyncio.sleep(10)
+                    #for i in range(60, 0, -20):
+                    #    log_message("系统日志", f"Rate Limited, waiting for {i} seconds...")
+                    #    await asyncio.sleep(10)
                     break
                 
                 if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
@@ -99,6 +99,10 @@ async def join_channel(nick, password, channel):
                             chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
+
+                if message.get("channel") not in [channel, "lounge"]:
+                    log_message("系统日志", "Detected kick, attempting to rejoin...")
+                    break
                 
                 if message.get("cmd") == "chat" and message.get("text") == "$help":
                     help_message = {
@@ -110,20 +114,32 @@ async def join_channel(nick, password, channel):
                     }
                     await websocket.send(json.dumps(help_message))
                     log_message("发送消息", json.dumps(help_message))
-                
+
                 if message.get("cmd") == "chat" and message.get("text") == "$reload":
                     trip = message.get("trip")
                     if trip in trustedusers:
                         log_message("系统日志", "Trusted user initiated reload, reloading...")
-                        reload_status = hotreload("new_def.txt")
-                        if reload_status == 0:
+                        try:
+                            with open("main.py", "r", encoding="utf-8") as file:
+                                code = file.read()
+                            exec(code, globals())
                             success_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载成功。", "customId": "0"}
                             await websocket.send(json.dumps(success_message))
                             log_message("发送消息", json.dumps(success_message))
-                        else:
-                            error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败。", "customId": "0"}
+                        except Exception as e:
+                            error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败: {str(e)}", "customId": "0"}
                             await websocket.send(json.dumps(error_message))
                             log_message("发送消息", json.dumps(error_message))
+                        # log_message("系统日志", "Trusted user initiated reload, reloading...")
+                        # reload_status = hotreload("new_def.txt")
+                        # if reload_status == 0:
+                        #     success_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载成功。", "customId": "0"}
+                        #     await websocket.send(json.dumps(success_message))
+                        #     log_message("发送消息", json.dumps(success_message))
+                        # else:
+                        #     error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败。", "customId": "0"}
+                        #     await websocket.send(json.dumps(error_message))
+                        #     log_message("发送消息", json.dumps(error_message))
                     else:
                         error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 你在干什么？你好像不是一个被信任的用户。", "customId": "0"}
                         await websocket.send(json.dumps(error_message))
@@ -142,11 +158,20 @@ async def join_channel(nick, password, channel):
 if os.path.exists("user.txt"):
     with open("user.txt", "r", encoding="utf-8") as user_file:
         lines = user_file.readlines()
-        nick = lines[0].strip()
-        password = lines[1].strip()
-        channel = lines[2].strip()
-        trustedusers = json.loads(lines[3].strip())
+        for line in lines:
+            if line.startswith("username:"):
+                nick = line.replace("username:", "").strip()
+            elif line.startswith("password:"):
+                password = line.replace("password:", "").strip()
+            elif line.startswith("channel:"):
+                channel = line.replace("channel:", "").strip()
+            elif line.startswith("trustedusers:"):
+                trustedusers = json.loads(line.replace("trustedusers:", "").strip())
+            elif line.startswith("ws_link:"):
+                ws_link = line.replace("ws_link:", "").strip()
+            if "ws_link" not in locals():
+                ws_link = "wss://hack.chat/chat-ws" # still have bug
 
-    asyncio.run(join_channel(nick, password, channel))
+    asyncio.run(join_channel(nick, password, channel, ws_link))
 else:
     print("Error: 'user.txt' file not found. Please ensure the file exists.")
