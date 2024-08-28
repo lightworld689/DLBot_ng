@@ -29,24 +29,6 @@ trustedusers: ["Trust1", "Trust2"]
 ws_link: wss://hack.chat/chat-ws
 ```
 
-
-
-在运行机器人之前，请确保在 `user.txt` 文件中正确配置以下内容：
-
-1. 昵称
-2. 密码
-3. 频道名称
-4. 信任用户识别码列表
-
-示例 `user.txt` 内容：
-
-```
-MyNickname
-MyPassword
-MyChannel
-["Trust1", "Trust2"]
-```
-
 ## 日志
 
 - **log.log**：记录所有系统日志和消息日志。
@@ -54,10 +36,7 @@ MyChannel
 
 ## 依赖
 
-- Python 3.7+
-- `asyncio`
-- `websockets`
-- `tkinter`
+requirements.txt
 
 ## 安装
 
