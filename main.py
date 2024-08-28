@@ -1,13 +1,8 @@
 import os
-import sys
 import json
 import time
 import asyncio
-import threading
 import websockets
-import tkinter as tk
-from reload import hotreload
-from tkinter import scrolledtext
 
 if not os.path.exists("log_status.txt"):
     with open("log_status.txt", "w", encoding="utf-8") as status_file:
