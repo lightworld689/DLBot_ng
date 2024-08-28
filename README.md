@@ -83,8 +83,8 @@ MyChannel
 - [x] RL重连
 - [x] 附身（$chat）
 - [x] 通过配置文件设置用户信息
-- [ ] Update_Message支持
 - [ ] [50%]私信命令处理
+- [ ] Update_Message支持
 - [ ] 通过配置文件增加命令
 - [ ] `$gethistory`读取消息记录
 - [ ] WebUI读取消息记录
