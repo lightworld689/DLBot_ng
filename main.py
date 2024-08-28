@@ -89,8 +89,8 @@ async def join_channel(nick, password, channel, ws_link):
                     trip = message.get("trip")
                     if trip in trustedusers:
                         text = message.get("text")
-                        if text and "whispered: /chat " in text:
-                            msg = text.split("whispered: /chat ", 1)[1]
+                        if text and "whispered: $chat " in text:
+                            msg = text.split("whispered: $chat ", 1)[1]
                             chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))

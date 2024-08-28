@@ -76,6 +76,21 @@ MyChannel
     python main.py
     ```
 
+## 目前计划
+
+- [x] 消息日志记录
+- [x] 掉线重连
+- [x] RL重连
+- [x] 附身（$chat）
+- [x] 通过配置文件设置用户信息
+- [ ] Update_Message支持
+- [ ] [50%]私信命令处理
+- [ ] 通过配置文件增加命令
+- [ ] `$gethistory`读取消息记录
+- [ ] WebUI读取消息记录
+- [ ] 增加多语言支持
+- [ ] 更多……
+
 ## 贡献
 
 欢迎贡献代码或提出改进建议。请通过 GitHub 提交 Issue 或 Pull Request。
