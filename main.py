@@ -143,6 +143,17 @@ async def join_channel(nick, password, channel, ws_link):
                 log_message("系统日志", "Connection lost, attempting to reconnect...")
                 break
 
+            if message.get("cmd") == "onlineAdd":
+                log_message("系统日志", f"{message.get('nick', 'Unknown')}加入了聊天室")
+                msg_entry = f"[{message.get('trip', '')}]{message.get('nick', 'Unknown')} 加入了聊天室\n"
+                with open("msg.log", "a", encoding="utf-8") as msg_file:
+                    msg_file.write(msg_entry)
+            elif message.get("cmd") == "onlineRemove":
+                log_message("系统日志", f"{message.get('nick', 'Unknown')}退出了聊天室")
+                msg_entry = f"[{message.get('trip', '')}]{message.get('nick', 'Unknown')} 退出了聊天室\n"
+                with open("msg.log", "a", encoding="utf-8") as msg_file:
+                    msg_file.write(msg_entry)
+
     while True:
         async with websockets.connect(uri) as websocket:
             join_message = {"cmd": "join", "channel": channel, "nick": full_nick}
