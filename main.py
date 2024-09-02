@@ -3,6 +3,9 @@ import json
 import time
 import asyncio
 import websockets
+import importlib
+import main
+import random
 
 if not os.path.exists("log_status.txt"):
     with open("log_status.txt", "w", encoding="utf-8") as status_file:
@@ -53,7 +56,16 @@ async def join_channel(nick, password, channel, ws_link):
             with open("msg.log", "a", encoding="utf-8") as msg_file:
                 msg_file.write(msg_entry)
     
+    async def send_color_message(websocket):
+        while True:
+            color = f"{random.randint(0, 255):02x}{random.randint(0, 255):02x}{random.randint(0, 255):02x}"
+            color_message = {"cmd": "chat", "text": f"/color #{color}", "customId": "0"}
+            await websocket.send(json.dumps(color_message))
+            log_message("发送消息", json.dumps(color_message))
+            await asyncio.sleep(10)
+
     async def handle_messages(websocket):
+        send_color_task = asyncio.create_task(send_color_message(websocket))
         while True:
             try:
                 response = await websocket.recv()
@@ -141,7 +153,11 @@ async def join_channel(nick, password, channel, ws_link):
                         log_message("发送消息", json.dumps(error_message))
             except websockets.ConnectionClosed:
                 log_message("系统日志", "Connection lost, attempting to reconnect...")
-                break
+                send_color_task.cancel()
+                try:
+                    await send_color_task
+                except asyncio.CancelledError:
+                    break
 
             if message.get("cmd") == "onlineAdd":
                 log_message("系统日志", f"{message.get('nick', 'Unknown')}加入了聊天室")
