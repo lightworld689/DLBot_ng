@@ -66,6 +66,7 @@ async def join_channel(nick, password, channel, ws_link):
 
     async def handle_messages(websocket):
         send_color_task = asyncio.create_task(send_color_message(websocket))
+        initial_join_time = time.time()
         while True:
             try:
                 response = await websocket.recv()
@@ -73,15 +74,9 @@ async def join_channel(nick, password, channel, ws_link):
                 message = json.loads(response)
                 
                 if message.get("cmd") == "warn" and "You are joining channels too fast. Wait a moment and try again." in message.get("text", ""):
-                    #for i in range(30, 0, -20):
-                    #    log_message("系统日志", f"Joining too fast, waiting for {i} seconds...")
-                    #    await asyncio.sleep(10)
                     break
 
                 if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
-                    #for i in range(60, 0, -20):
-                    #    log_message("系统日志", f"Rate Limited, waiting for {i} seconds...")
-                    #    await asyncio.sleep(10)
                     break
                 
                 if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
@@ -106,8 +101,8 @@ async def join_channel(nick, password, channel, ws_link):
                             chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
-
-                if message.get("channel") not in [channel, "lounge"]:
+                #if message.get("channel") not in [channel, "lounge"] and time.time() - initial_join_time > 10:
+                if message.get("channel") not in ["lounge"] and time.time() - initial_join_time > 10:
                     log_message("系统日志", "Detected kick, attempting to rejoin...")
                     break
                 
@@ -137,16 +132,6 @@ async def join_channel(nick, password, channel, ws_link):
                             error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败: {str(e)}", "customId": "0"}
                             await websocket.send(json.dumps(error_message))
                             log_message("发送消息", json.dumps(error_message))
-                        # log_message("系统日志", "Trusted user initiated reload, reloading...")
-                        # reload_status = hotreload("new_def.txt")
-                        # if reload_status == 0:
-                        #     success_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载成功。", "customId": "0"}
-                        #     await websocket.send(json.dumps(success_message))
-                        #     log_message("发送消息", json.dumps(success_message))
-                        # else:
-                        #     error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败。", "customId": "0"}
-                        #     await websocket.send(json.dumps(error_message))
-                        #     log_message("发送消息", json.dumps(error_message))
                     else:
                         error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 你在干什么？你好像不是一个被信任的用户。", "customId": "0"}
                         await websocket.send(json.dumps(error_message))
