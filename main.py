@@ -105,6 +105,14 @@ async def join_channel(nick, password, channel, ws_link):
                 if message.get("channel") not in ["lounge"] and time.time() - initial_join_time > 10:
                     log_message("系统日志", "Detected kick, attempting to rejoin...")
                     break
+
+                if message.get("cmd") == "chat" and message.get("text", "").startswith("$chat "):
+                    trip = message.get("trip")
+                    if trip in trustedusers:
+                        msg = message.get("text").split("$chat ", 1)[1]
+                        whisper_message = {"cmd": "chat", "text": msg, "customId": "0"}
+                        await websocket.send(json.dumps(whisper_message))
+                        log_message("发送消息", json.dumps(whisper_message))
                 
                 if message.get("cmd") == "chat" and message.get("text") == "$help":
                     help_message = {
