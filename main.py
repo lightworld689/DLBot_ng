@@ -164,11 +164,15 @@ async def join_channel(nick, password, channel, ws_link):
                     msg_file.write(msg_entry)
 
     while True:
-        async with websockets.connect(uri) as websocket:
-            join_message = {"cmd": "join", "channel": channel, "nick": full_nick}
-            await websocket.send(json.dumps(join_message))
-            log_message("系统日志", f"Joined channel {channel} as {nick}")
-            await handle_messages(websocket)
+        try:
+            async with websockets.connect(uri) as websocket:
+                join_message = {"cmd": "join", "channel": channel, "nick": full_nick}
+                await websocket.send(json.dumps(join_message))
+                log_message("系统日志", f"Joined channel {channel} as {nick}")
+                await handle_messages(websocket)
+        except (websockets.ConnectionClosed, websockets.InvalidHandshake, websockets.InvalidURI, OSError) as e:
+            log_message("系统日志", f"Connection error: {e}, retrying in 5 seconds...")
+            await asyncio.sleep(5)
 
 if os.path.exists("user.txt"):
     with open("user.txt", "r", encoding="utf-8") as user_file:
