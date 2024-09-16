@@ -107,11 +107,16 @@ async def join_channel(nick, password, channel, ws_link):
                             chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
-                #if message.get("channel") not in [channel, "lounge"] and time.time() - initial_join_time > 10:
-                if message.get("channel") in ["loungee"] or message.get("channel") not in [channel] and time.time() - initial_join_time > 10:
+                #if message.get("channel") != channel and time.time() - initial_join_time > 10:
+                if message.get("channel") != "lounge" and time.time() - initial_join_time > 10:
                     log_message("系统日志", "Detected kick, attempting to rejoin...")
+                    send_color_task.cancel()
+                    try:
+                        await send_color_task
+                    except asyncio.CancelledError:
+                        pass
                     break
-
+                
                 if message.get("cmd") == "chat" and message.get("text", "").startswith("$chat "):
                     trip = message.get("trip")
                     if trip in trustedusers:
