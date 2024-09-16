@@ -3,9 +3,13 @@ import json
 import time
 import asyncio
 import websockets
-import importlib
-import main
 import random
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from aiohttp import web
+import urllib.parse
+
+# 全局变量用于存储WebSocket连接
+websocket = None
 
 if not os.path.exists("log_status.txt"):
     with open("log_status.txt", "w", encoding="utf-8") as status_file:
@@ -15,10 +19,6 @@ with open("log_status.txt", "r+", encoding="utf-8") as status_file:
     status = status_file.read()
     status_file.seek(0)
     status_file.write("0")
-
-async def join_channel(nick, password, channel, ws_link):
-    uri = ws_link
-    full_nick = f"{nick}#{password}"
 
     def log_message(type, message):
         if not os.path.exists("log_status.txt"):
@@ -55,6 +55,11 @@ async def join_channel(nick, password, channel, ws_link):
             
             with open("msg.log", "a", encoding="utf-8") as msg_file:
                 msg_file.write(msg_entry)
+
+async def join_channel(nick, password, channel, ws_link):
+    global websocket
+    uri = ws_link
+    full_nick = f"{nick}#{password}"
     
     async def send_color_message(websocket):
         while True:
@@ -62,9 +67,10 @@ async def join_channel(nick, password, channel, ws_link):
             color_message = {"cmd": "chat", "text": f"/color #{color}", "customId": "0"}
             await websocket.send(json.dumps(color_message))
             log_message("发送消息", json.dumps(color_message))
-            await asyncio.sleep(10)
+            await asyncio.sleep(15)
 
     async def handle_messages(websocket):
+        global send_color_task
         send_color_task = asyncio.create_task(send_color_message(websocket))
         initial_join_time = time.time()
         while True:
@@ -102,7 +108,7 @@ async def join_channel(nick, password, channel, ws_link):
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
                 #if message.get("channel") not in [channel, "lounge"] and time.time() - initial_join_time > 10:
-                if message.get("channel") not in ["lounge"] and time.time() - initial_join_time > 10:
+                if message.get("channel") in[channel]and message.get("channel")not in [channel] and time.time() - initial_join_time > 10:
                     log_message("系统日志", "Detected kick, attempting to rejoin...")
                     break
 
@@ -174,23 +180,141 @@ async def join_channel(nick, password, channel, ws_link):
             log_message("系统日志", f"Connection error: {e}, retrying in 5 seconds...")
             await asyncio.sleep(5)
 
-if os.path.exists("user.txt"):
-    with open("user.txt", "r", encoding="utf-8") as user_file:
-        lines = user_file.readlines()
-        for line in lines:
-            if line.startswith("username:"):
-                nick = line.replace("username:", "").strip()
-            elif line.startswith("password:"):
-                password = line.replace("password:", "").strip()
-            elif line.startswith("channel:"):
-                channel = line.replace("channel:", "").strip()
-            elif line.startswith("trustedusers:"):
-                trustedusers = json.loads(line.replace("trustedusers:", "").strip())
-            elif line.startswith("ws_link:"):
-                ws_link = line.replace("ws_link:", "").strip()
-            if "ws_link" not in locals():
-                ws_link = "wss://hack.chat/chat-ws" # still have bug
+class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith('/chat/'):
+            message = self.path.split('/chat/')[1]
+            global websocket
+            if websocket:
+                chat_message = {"cmd": "chat", "text": message, "customId": "0"}
+                asyncio.run(websocket.send(json.dumps(chat_message)))
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success", "message": "Message sent"}).encode('utf-8'))
+            else:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "error", "message": "WebSocket connection not established"}).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "error", "message": "Not found"}).encode('utf-8'))
 
-    asyncio.run(join_channel(nick, password, channel, ws_link))
-else:
-    print("Error: 'user.txt' file not found. Please ensure the file exists.")
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data)
+        global websocket
+        if websocket:
+            asyncio.run(websocket.send(json.dumps(data)))
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "message": "JSON message sent"}).encode('utf-8'))
+        else:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "error", "message": "WebSocket connection not established"}).encode('utf-8'))
+
+async def start_server():
+    app = web.Application()
+    app.router.add_get('/', handle_index)
+    app.router.add_post('/send_message', handle_send_message)
+    app.router.add_post('/send_json', handle_send_json)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 18896)
+    await site.start()
+    print(f"Starting server on http://0.0.0.0:18896")
+
+async def handle_index(request):
+    with open('index.html', 'r', encoding='utf-8') as f:
+        content = f.read()
+    return web.Response(text=content, content_type='text/html')
+
+async def handle_send_message(request):
+    data = await request.post()
+    message = data['message']
+    log_message("系统日志", f"Attempting to send message: {message}")
+    success = await send_message(message)
+    log_message("系统日志", f"Message sent successfully: {success}")
+    return web.json_response({"success": success})
+
+async def handle_send_json(request):
+    global websocket
+    data = await request.json()
+    if websocket:
+        await websocket.send(json.dumps(data))
+        return web.json_response({"success": True})
+    else:
+        return web.json_response({"success": False, "error": "WebSocket not connected"})
+async def handle_chat(request):
+    query_params = request.query_string
+    if query_params:
+        # URL 解码
+        decoded_message = urllib.parse.unquote(query_params)
+        # 处理换行符
+        decoded_message = decoded_message.replace('\\n', '\n')
+    else:
+        decoded_message = ""
+    
+    global websocket
+    if websocket:
+        chat_message = {"cmd": "chat", "text": decoded_message, "customId": "0"}
+        await websocket.send(json.dumps(chat_message))
+        return web.json_response({"status": "success", "message": "Message sent"})
+    else:
+        return web.json_response({"status": "error", "message": "WebSocket connection not established"}, status=500)
+
+async def handle_post(request):
+    data = await request.json()
+    global websocket
+    if websocket:
+        if "text" in data:
+            # 处理换行符
+            data["text"] = data["text"].replace('\\n', '\n')
+        await websocket.send(json.dumps(data))
+        return web.json_response({"status": "success", "message": "JSON message sent"})
+    else:
+        return web.json_response({"status": "error", "message": "WebSocket connection not established"}, status=500)
+
+async def send_message(message):
+    global websocket
+    if websocket:
+        # 处理换行符
+        message = message.replace('\\n', '\n')
+        chat_message = {"cmd": "chat", "text": message, "customId": "0"}
+        await websocket.send(json.dumps(chat_message))
+        return True
+    return False
+
+if __name__ == '__main__':
+    if os.path.exists("user.txt"):
+        with open("user.txt", "r", encoding="utf-8") as user_file:
+            lines = user_file.readlines()
+            for line in lines:
+                if line.startswith("username:"):
+                    nick = line.replace("username:", "").strip()
+                elif line.startswith("password:"):
+                    password = line.replace("password:", "").strip()
+                elif line.startswith("channel:"):
+                    channel = line.replace("channel:", "").strip()
+                elif line.startswith("trustedusers:"):
+                    trustedusers = json.loads(line.replace("trustedusers:", "").strip())
+                elif line.startswith("ws_link:"):
+                    ws_link = line.replace("ws_link:", "").strip()
+                if "ws_link" not in locals():
+                    ws_link = "wss://hack.chat/chat-ws" # still have bug
+
+        async def main():
+            server_task = asyncio.create_task(start_server())
+            join_task = asyncio.create_task(join_channel(nick, password, channel, ws_link))
+            await join_task
+
+        asyncio.run(main())
+    else:
+        print("Error: 'user.txt' file not found. Please ensure the file exists.")

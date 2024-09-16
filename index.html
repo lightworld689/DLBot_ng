@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLBot WebUI</title>
+    <link rel="stylesheet" href="https://unpkg.com/mdui@1.0.2/dist/css/mdui.min.css">
+    <script src="https://unpkg.com/mdui@1.0.2/dist/js/mdui.min.js"></script>
+</head>
+
+<body class="mdui-theme-primary-indigo mdui-theme-accent-pink">
+    <div class="mdui-container">
+        <h1 class="mdui-text-color-theme">DLBot WebUI</h1>
+
+        <div class="mdui-textfield mdui-textfield-floating-label">
+            <label class="mdui-textfield-label">发送消息</label>
+            <textarea class="mdui-textfield-input" id="messageInput" rows="3"></textarea>
+        </div>
+        <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent"
+            onclick="sendMessage()">发送消息</button>
+
+        <div class="mdui-textfield mdui-textfield-floating-label">
+            <label class="mdui-textfield-label">发送JSON</label>
+            <textarea class="mdui-textfield-input" id="jsonInput" rows="5"></textarea>
+        </div>
+        <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent"
+            onclick="sendJSON()">发送JSON</button>
+    </div>
+
+    <script>
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function sendMessage() {
+            var message = document.getElementById('messageInput').value;
+            var escapedMessage = escapeHtml(message);
+            fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'message=' + encodeURIComponent(escapedMessage)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        mdui.snackbar({ message: '消息发送成功！' });
+                    } else {
+                        mdui.snackbar({ message: '消息发送失败！' });
+                    }
+                });
+        }
+
+        function sendJSON() {
+            var jsonStr = document.getElementById('jsonInput').value;
+            try {
+                var jsonObj = JSON.parse(jsonStr);
+                fetch('/send_json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(jsonObj)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            mdui.snackbar({ message: 'JSON发送成功！' });
+                        } else {
+                            mdui.snackbar({ message: 'JSON发送失败！' });
+                        }
+                    });
+            } catch (e) {
+                mdui.snackbar({ message: 'JSON格式错误！' });
+            }
+        }
+    </script>
+</body>
+
+</html>
