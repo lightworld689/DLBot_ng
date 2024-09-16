@@ -67,7 +67,7 @@ async def join_channel(nick, password, channel, ws_link):
             color_message = {"cmd": "chat", "text": f"/color #{color}", "customId": "0"}
             await websocket.send(json.dumps(color_message))
             log_message("发送消息", json.dumps(color_message))
-            await asyncio.sleep(15)
+            await asyncio.sleep(10)
 
     async def handle_messages(websocket):
         global send_color_task
@@ -108,7 +108,7 @@ async def join_channel(nick, password, channel, ws_link):
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
                 #if message.get("channel") not in [channel, "lounge"] and time.time() - initial_join_time > 10:
-                if message.get("channel") in[channel]and message.get("channel")not in [channel] and time.time() - initial_join_time > 10:
+                if message.get("channel") in ["loungee"] or message.get("channel") not in [channel] and time.time() - initial_join_time > 10:
                     log_message("系统日志", "Detected kick, attempting to rejoin...")
                     break
 
