@@ -107,8 +107,7 @@ async def join_channel(nick, password, channel, ws_link):
                             chat_message = {"cmd": "chat", "text": msg, "customId": "0"}
                             await websocket.send(json.dumps(chat_message))
                             log_message("发送消息", json.dumps(chat_message))
-                #if message.get("channel") != channel and time.time() - initial_join_time > 10:
-                if message.get("channel") != "lounge" and time.time() - initial_join_time > 10:
+                if message.get("channel") != true_channel and time.time() - initial_join_time > 10:
                     log_message("系统日志", "Detected kick, attempting to rejoin...")
                     send_color_task.cancel()
                     try:
@@ -308,12 +307,17 @@ if __name__ == '__main__':
                     password = line.replace("password:", "").strip()
                 elif line.startswith("channel:"):
                     channel = line.replace("channel:", "").strip()
+                elif line.startswith("true_channel:"):
+                    true_channel = line.replace("true_channel:", "").strip()
                 elif line.startswith("trustedusers:"):
                     trustedusers = json.loads(line.replace("trustedusers:", "").strip())
                 elif line.startswith("ws_link:"):
                     ws_link = line.replace("ws_link:", "").strip()
                 if "ws_link" not in locals():
                     ws_link = "wss://hack.chat/chat-ws" # still have bug
+
+        if "true_channel" not in locals():
+            true_channel = channel
 
         async def main():
             server_task = asyncio.create_task(start_server())
