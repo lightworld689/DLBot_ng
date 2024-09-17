@@ -2,15 +2,26 @@
 
 DLBot_ng 是一个基于 WebSocket 的聊天机器人，用于连接到 hack.chat 平台。它能够自动加入指定的聊天频道，并根据预设条件发送和记录消息。
 
-## 目前计划
+**如果您希望使用DLBot_ng，请在下载之后，将第111行的**
 
-**我们正打算逐步弃用DLBot_ng。[DLBot_ng_ng](https://www.github.com/lightworld689/DLBot_ng_ng)正在逐步研发。**
+```
+if message.get("channel") != "lounge" and time.time() - initial_join_time > 10:
+```
+
+**改为**
+
+```
+if message.get("channel") != channel and time.time() - initial_join_time > 10:
+```
+
+## 目前计划
 
 - [x] 消息日志记录
 - [x] 掉线重连
 - [x] RL重连
 - [x] 附身（$chat）
 - [x] 通过配置文件设置用户信息
+- [x] WebUI发送消息
 - [ ] [50%]私信命令处理
 - [ ] Update_Message支持
 - [ ] 通过配置文件增加命令
