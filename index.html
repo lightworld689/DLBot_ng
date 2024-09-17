@@ -26,6 +26,15 @@
         </div>
         <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent"
             onclick="sendJSON()">发送JSON</button>
+        <div class="mdui-textfield mdui-textfield-floating-label">
+            <label class="mdui-textfield-label">获取最近消息数量</label>
+            <input class="mdui-textfield-input" type="number" id="messageCount" min="1" value="10">
+        </div>
+        <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-theme-accent"
+            onclick="getRecentMessages()">获取最近消息</button>
+
+        <div id="messageDisplay" class="mdui-panel mdui-panel-gapless" style="margin-top: 20px;"></div>
+    </div>
     </div>
 
     <script>
@@ -80,6 +89,10 @@
             } catch (e) {
                 mdui.snackbar({ message: 'JSON格式错误！' });
             }
+        }
+        function getRecentMessages() {
+            var count = document.getElementById('messageCount').value;
+            window.open('/get_recent_messages?count=' + count, '_blank');
         }
     </script>
 </body>

@@ -224,11 +224,27 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"status": "error", "message": "WebSocket connection not established"}).encode('utf-8'))
 
+async def handle_get_recent_messages(request):
+    count = int(request.query.get('count', 10))
+    try:
+        with open("msg.log", "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            total_lines = len(lines)
+            start_line = max(0, total_lines - count)
+            messages = lines[start_line:]
+            content = ''.join(messages)
+    except Exception as e:
+        log_message("系统日志", f"读取 msg.log 时发生错误: {str(e)}")
+        content = f"错误: {str(e)}"
+    
+    return web.Response(text=content, content_type='text/plain')
+
 async def start_server():
     app = web.Application()
     app.router.add_get('/', handle_index)
     app.router.add_post('/send_message', handle_send_message)
     app.router.add_post('/send_json', handle_send_json)
+    app.router.add_get('/get_recent_messages', handle_get_recent_messages)  
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 18896)

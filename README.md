@@ -11,11 +11,12 @@ DLBot_ng 是一个基于 WebSocket 的聊天机器人，用于连接到 hack.cha
 - [x] 通过配置文件设置用户信息
 - [x] WebUI发送消息
 - [x] kick 拦截
+- [x] WebUI读取消息记录
+- [x] async多线程运行
 - [ ] [50%]私信命令处理
 - [ ] Update_Message支持
 - [ ] 通过配置文件增加命令
 - [ ] `$gethistory`读取消息记录
-- [ ] WebUI读取消息记录
 - [ ] 增加多语言支持
 - [ ] 更多……
 
