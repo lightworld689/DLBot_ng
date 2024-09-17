@@ -27,6 +27,12 @@ DLBot_ng 是一个基于 WebSocket 的聊天机器人，用于连接到 hack.cha
 - **自动重试**：当遇到昵称被占用或加入频道过快的情况时，机器人会自动重试。
 - **私信处理**：机器人能够处理特定的私信命令，并根据命令内容发送消息。
 
+## 截图
+
+![.png](https://s2.loli.net/2024/09/17/T8nJIh3duremNGQ.png)
+![图片](https://github.com/user-attachments/assets/ee469b22-acb0-496c-a089-24464653683e)
+
+
 ## 配置
 
 在运行机器人之前，请确保在 `user.txt` 文件中正确配置以下内容：
