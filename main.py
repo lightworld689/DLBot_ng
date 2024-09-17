@@ -97,6 +97,38 @@ async def join_channel(nick, password, channel, ws_link):
                     startup_message = {"cmd": "chat", "text": "DLBot detected abnormal exit and successfully restarted", "customId": "0"}
                     await websocket.send(json.dumps(startup_message))
                     log_message("发送消息", json.dumps(startup_message))
+
+                if message.get("cmd") == "onlineAdd" and message.get("trip") == "vuPizP":
+                    welc = """
+```
+systemctl enable DQJL
+systemctl start DQJL
+systemctl status DQJL
+```
+
+$$Ciallo～(∠・ω< )⌒★$$
+$$老灯驾到通通闪开！！！$$
+$$DQJL成分鉴定：sensei我想和你一起坐星穹列车去彩色舞台打急冻树然后再去飞空客A320awa$$
+$$拒绝炼铜劈，从你我做起$$
+拒绝幼态审美，从你他做起 BTW
+
+***
+
+老灯的meme大全：
+![image.png](https://camo.hach.chat/?proxyUrl=https://files.catbox.moe/w4kz9b.png&mine=image/png)
+![image.png](https://camo.hach.chat/?proxyUrl=https://files.catbox.moe/hhfq7k.png&mine=image/png)
+
+***
+
+时事新闻：
+
+我知道你们知道我的名字学校了不要开户我啊啊啊
+
+### 我承认本人是萝莉控福瑞控玩过迷你世界参加过一战二战诋毁过lo诋毁过大部分用户喜欢骂人引战参加过聊天室二战三国鼎立支持（哪边强哪边倒）过99%聊天室看过凹凸世界歧视过janpanse但是我已经改了不要线下真实我我啊啊啊啊啊啊啊
+"""
+                    startup_message = {"cmd": "chat", "text": welc, "customId": "0"}
+                    await websocket.send(json.dumps(startup_message))
+                    log_message("发送消息", json.dumps(startup_message))
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     trip = message.get("trip")
