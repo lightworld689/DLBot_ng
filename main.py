@@ -60,7 +60,7 @@ with open("log_status.txt", "r+", encoding="utf-8") as status_file:
             with open("msg.log", "a", encoding="utf-8") as msg_file:
                 msg_file.write(msg_entry)
 
-async def join_channel(nick, password, channel, ws_link):
+async def join_channel(nick, password, channel, true_channel, ws_link):
     global websocket
     uri = ws_link
     full_nick = f"{nick}#{password}"
@@ -73,7 +73,7 @@ async def join_channel(nick, password, channel, ws_link):
             log_message("发送消息", json.dumps(color_message))
             await asyncio.sleep(10)
 
-    async def handle_messages(websocket):
+    async def handle_messages(websocket, target_channel):
         global send_color_task
         send_color_task = asyncio.create_task(send_color_message(websocket))
         initial_join_time = time.time()
@@ -145,6 +145,15 @@ async def join_channel(nick, password, channel, ws_link):
                     await websocket.send(json.dumps(help_message))
                     log_message("发送消息", json.dumps(help_message))
 
+                if message.get("channel") != target_channel and time.time() - initial_join_time > 30:
+                    log_message("系统日志", f"检测到错误频道 {message.get('channel')}，尝试重新加入 {target_channel}...")
+                    send_color_task.cancel()
+                    try:
+                        await send_color_task
+                    except asyncio.CancelledError:
+                        pass
+                    return False
+
                 if message.get("cmd") == "chat" and message.get("text") == "$reload":
                     trip = message.get("trip")
                     if trip in trustedusers:
@@ -183,16 +192,27 @@ async def join_channel(nick, password, channel, ws_link):
                 with open("msg.log", "a", encoding="utf-8") as msg_file:
                     msg_file.write(msg_entry)
 
+    use_true_channel = True
     while True:
         try:
+            target_channel = true_channel if use_true_channel else channel
             async with websockets.connect(uri) as websocket:
-                join_message = {"cmd": "join", "channel": channel, "nick": full_nick}
+                join_message = {"cmd": "join", "channel": target_channel, "nick": full_nick}
                 await websocket.send(json.dumps(join_message))
-                log_message("系统日志", f"Joined channel {channel} as {nick}")
-                await handle_messages(websocket)
+                log_message("系统日志", f"加入频道 {target_channel} 作为 {nick}")
+                
+                result = await handle_messages(websocket, target_channel)
+                
+                if result is False:
+                    log_message("系统日志", f"无法加入 {target_channel}，5秒后尝试加入另一个频道...")
+                    await asyncio.sleep(5)
+                    use_true_channel = not use_true_channel  # 切换到另一个频道
+                    continue
+                
         except (websockets.ConnectionClosed, websockets.InvalidHandshake, websockets.InvalidURI, OSError) as e:
-            log_message("系统日志", f"Connection error: {e}, retrying in 5 seconds...")
+            log_message("系统日志", f"连接错误: {e}，5秒后重试...")
             await asyncio.sleep(5)
+            use_true_channel = not use_true_channel
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -340,14 +360,14 @@ if __name__ == '__main__':
                 elif line.startswith("ws_link:"):
                     ws_link = line.replace("ws_link:", "").strip()
                 if "ws_link" not in locals():
-                    ws_link = "wss://hack.chat/chat-ws" # still have bug
+                    ws_link = "wss://hack.chat/chat-ws"
 
         if "true_channel" not in locals():
             true_channel = channel
 
         async def main():
             server_task = asyncio.create_task(start_server())
-            join_task = asyncio.create_task(join_channel(nick, password, channel, ws_link))
+            join_task = asyncio.create_task(join_channel(nick, password, channel, true_channel, ws_link))
             await join_task
 
         asyncio.run(main())
