@@ -198,10 +198,10 @@ async def join_channel(nick, password, channel, ws_link):
                 if message.get("cmd") == "chat" and message.get("text") == "$help":
                     help_message = {
                         "cmd": "chat",
-                        "text": """| 指令 | 用途 | 用法 | 需要的权限 |
+                        "text": r"""| 指令 | 用途 | 用法 | 需要的权限 |
                 | --- | --- | --- | --- |
-                | $help | 显示本页面 | $help | 无 |
-                | $whoami | 设置身份描述 | $whoami <描述> | 需要有识别码（使用密码登录） |""",
+                | $help | 显示本页面 | `$help` | 无 |
+                | $whoami | 设置身份描述 | `$whoami <描述>` （清除： `$whoami<空格>`） | 需要有识别码（使用密码登录） |""",
                         "customId": "0"
                     }
                     await websocket.send(json.dumps(help_message))
