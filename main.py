@@ -8,6 +8,33 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from aiohttp import web
 import urllib.parse
 import logging
+import sqlite3
+
+# 初始化数据库
+def init_db():
+    conn = sqlite3.connect('data.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS whoami
+                 (trip TEXT PRIMARY KEY, description TEXT)''')
+    conn.commit()
+    conn.close()
+
+# 保存 whoami 数据
+def save_whoami(trip, description):
+    conn = sqlite3.connect('data.db')
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO whoami (trip, description) VALUES (?, ?)", (trip, description))
+    conn.commit()
+    conn.close()
+
+# 获取 whoami 数据
+def get_whoami(trip):
+    conn = sqlite3.connect('data.db')
+    c = conn.cursor()
+    c.execute("SELECT description FROM whoami WHERE trip = ?", (trip,))
+    result = c.fetchone()
+    conn.close()
+    return result[0] if result else None
 
 # logging.basicConfig(level=logging.DEBUG,
 #                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -102,11 +129,6 @@ async def join_channel(nick, password, channel, ws_link):
                     await websocket.send(json.dumps(startup_message))
                     log_message("发送消息", json.dumps(startup_message))
 
-                if message.get("cmd") == "onlineAdd" and message.get("trip") == "vuPizP":
-                    welc = f"@{message.get('nick', 'Unknown')} ，灯确吉L。"
-                    startup_message = {"cmd": "chat", "text": welc, "customId": "0"}
-                    await websocket.send(json.dumps(startup_message))
-                    log_message("发送消息", json.dumps(startup_message))
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     trip = message.get("trip")
@@ -134,12 +156,36 @@ async def join_channel(nick, password, channel, ws_link):
                         await websocket.send(json.dumps(whisper_message))
                         log_message("发送消息", json.dumps(whisper_message))
                 
+                if message.get("cmd") == "chat" and message.get("text", "").startswith("$whoami "):
+                    trip = message.get("trip")
+                    nick = message.get("nick", "Unknown")
+                    if not trip:
+                        error_message = {"cmd": "chat", "text": f"@{nick} 错误：空的识别码不得设置身份信息。请确保你已经使用密码登录。", "customId": "0"}
+                        await websocket.send(json.dumps(error_message))
+                        log_message("发送消息", json.dumps(error_message))
+                    else:
+                        description = message.get("text").split("$whoami ", 1)[1]
+                        save_whoami(trip, description)
+                        confirm_message = {"cmd": "chat", "text": f"@{nick} 你的身份描述已设置。", "customId": "0"}
+                        await websocket.send(json.dumps(confirm_message))
+                        log_message("发送消息", json.dumps(confirm_message))
+
+                if message.get("cmd") == "onlineAdd":
+                    trip = message.get("trip")
+                    nick = message.get("nick")
+                    description = get_whoami(trip)
+                    if description:
+                        welcome_message = {"cmd": "chat", "text": f"@{nick} 的身份： {description}", "customId": "0"}
+                        await websocket.send(json.dumps(welcome_message))
+                        log_message("发送消息", json.dumps(welcome_message))
+
                 if message.get("cmd") == "chat" and message.get("text") == "$help":
                     help_message = {
                         "cmd": "chat",
                         "text": """| 指令 | 用途 | 用法 | 需要的权限 |
-| --- | --- | --- | --- |
-| \\$help | 显示本页面 | \\$help | 无 |""",
+                | --- | --- | --- | --- |
+                | $help | 显示本页面 | $help | 无 |
+                | $whoami | 设置身份描述 | $whoami <描述> | 需要有识别码（使用密码登录） |""",
                         "customId": "0"
                     }
                     await websocket.send(json.dumps(help_message))
@@ -346,6 +392,7 @@ if __name__ == '__main__':
             true_channel = channel
 
         async def main():
+            init_db()
             server_task = asyncio.create_task(start_server())
             join_task = asyncio.create_task(join_channel(nick, password, channel, ws_link))
             await join_task
