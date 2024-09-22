@@ -21,11 +21,25 @@
 </body>
 
 <script>
+    // 更新后的handleKeyDown函数
     function handleKeyDown(event) {
-        if (event.key === ' ') {
+        if (event.key === 'Enter') {
             sendMessage();
+            // 清空输入框
+            document.getElementById('messageInput').value = '';
+            // 取消shift+Enter的换行效果，仅处理Enter键事件
+            if (!event.shiftKey) {
+                event.preventDefault(); // 取消自动换行
+            }
+        } else if (event.key === 'Shift') {
+            // 如果是Shift键先被按下，不执行任何操作
+            // 后面接Enter键时，检测是否要换行
+            if (event.shiftKey && event.key === 'Enter') {
+                event.preventDefault(); // 如果是Shift+Enter，阻止默认换行
+            }
         }
     }
+</script>
 </script>
 
 <div class="mdui-textfield mdui-textfield-floating-label">
