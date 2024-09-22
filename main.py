@@ -141,7 +141,7 @@ async def join_channel(nick, password, channel, ws_link):
                     break
                 
                 if message.get("cmd") == "onlineSet":
-                    startup_message = {"cmd": "chat", "text": "DLBot detected abnormal exit and successfully restarted", "customId": "0"}
+                    startup_message = {"cmd": "chat", "text": "DLBot检测到异常退出，并且顺利重启。 使用`$help`查看帮助。", "customId": "0"}
                     await websocket.send(json.dumps(startup_message))
                     log_message("发送消息", json.dumps(startup_message))
 
