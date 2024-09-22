@@ -116,6 +116,22 @@ async def join_channel(nick, password, channel, ws_link):
                 if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
                     break
                 
+                if message.get("cmd") == "info" and message.get("type") == "whisper":
+                    from_user = message.get("from")
+                    
+                    # 固定的私信回复
+                    reply = ".\n本bot目前不支持私信命令使用。"
+                    
+                    # 发送私信回复
+                    whisper_reply = {
+                        "cmd": "whisper",
+                        "nick": from_user,
+                        "text": reply
+                    }
+                    await websocket.send(json.dumps(whisper_reply))
+                    log_message("发送私信", json.dumps(whisper_reply))
+
+
                 if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
                     log_message("系统日志", "Nickname taken, modifying nickname and retrying...")
                     if "#" in full_nick:
