@@ -137,7 +137,8 @@ async def join_channel(nick, password, channel, ws_link):
                             # 发送警告消息
                             warning_message = {
                                 "cmd": "chat",
-                                "text": f"管理员请注意：[{trip}]{from_user}正在反复向我私信（{whisper_content}）。",
+#                                "text": f"管理员请注意：[{trip}]{from_user}正在反复向我私信（{whisper_content}）。",
+                                "text": f"管理员请注意：[{trip}]{from_user}正在反复向我私信，请注意是否有刷屏现象发生，必要时采取措施。",
                                 "customId": "0"
                             }
                             await websocket.send(json.dumps(warning_message))
@@ -155,8 +156,8 @@ async def join_channel(nick, password, channel, ws_link):
                             "nick": from_user,
                             "text": reply
                         }
-                        await websocket.send(json.dumps(whisper_reply))
-                        log_message("发送私信", json.dumps(whisper_reply))
+                        #await websocket.send(json.dumps(whisper_reply))
+                        #log_message("发送私信", json.dumps(whisper_reply))
 
 
                 if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
