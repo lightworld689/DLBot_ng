@@ -40,6 +40,7 @@ def get_whoami(trip):
 #                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # 全局变量用于存储WebSocket连接
+whisper_history = {}
 websocket = None
 
 if not os.path.exists("log_status.txt"):
@@ -118,18 +119,44 @@ async def join_channel(nick, password, channel, ws_link):
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     from_user = message.get("from")
+                    trip = message.get("trip", "")
+                    whisper_content = message.get("text", "")
                     
-                    # 固定的私信回复
-                    reply = ".\n本bot目前不支持私信命令使用。"
-                    
-                    # 发送私信回复
-                    whisper_reply = {
-                        "cmd": "whisper",
-                        "nick": from_user,
-                        "text": reply
-                    }
-                    await websocket.send(json.dumps(whisper_reply))
-                    log_message("发送私信", json.dumps(whisper_reply))
+                    # 忽略以"You whispered to"开头的消息
+                    if not whisper_content.startswith("You whispered to"):
+                        # 记录私信历史
+                        current_time = time.time()
+                        if from_user not in whisper_history:
+                            whisper_history[from_user] = []
+                        whisper_history[from_user].append((current_time, whisper_content))
+                        
+                        # 检查最近1秒内的私信
+                        recent_whispers = [w for w in whisper_history[from_user] if current_time - w[0] <= 1]
+                        
+                        if len(recent_whispers) >= 3 and all(w[1] == recent_whispers[0][1] for w in recent_whispers):
+                            # 发送警告消息
+                            warning_message = {
+                                "cmd": "chat",
+                                "text": f"管理员请注意：[{trip}]{from_user}正在反复向我私信（{whisper_content}）。",
+                                "customId": "0"
+                            }
+                            await websocket.send(json.dumps(warning_message))
+                            log_message("发送消息", json.dumps(warning_message))
+                        
+                        # 清理旧的私信记录
+                        whisper_history[from_user] = [w for w in whisper_history[from_user] if current_time - w[0] <= 10]
+                        
+                        # 固定的私信回复
+                        reply = ".\n本bot目前不支持私信命令使用。"
+                        
+                        # 发送私信回复
+                        whisper_reply = {
+                            "cmd": "whisper",
+                            "nick": from_user,
+                            "text": reply
+                        }
+                        await websocket.send(json.dumps(whisper_reply))
+                        log_message("发送私信", json.dumps(whisper_reply))
 
 
                 if message.get("cmd") == "warn" and "Nickname taken" in message.get("text", ""):
