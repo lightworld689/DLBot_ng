@@ -81,7 +81,9 @@ with open("log_status.txt", "r+", encoding="utf-8") as status_file:
             if message_json.get("cmd") == "chat":
                 msg_entry = f"[{message_json.get('trip', '')}]{message_json.get('nick', '')}：{message_json.get('text', '')}\n"
             elif message_json.get("cmd") == "info":
-                msg_entry = f"系统消息：{message_json.get('text', '')}\n"
+                msg_entry = f"系统提示：{message_json.get('text', '')}\n"
+            elif message_json.get("cmd") == "warn":
+                msg_entry = f"系统警告：{message_json.get('text', '')}\n"
             else:
                 return
             
@@ -115,6 +117,9 @@ async def join_channel(nick, password, channel, ws_link):
                     break
 
                 if message.get("cmd") == "warn" and "You are being rate-limited or blocked." in message.get("text", ""):
+                    break
+
+                if message.get("cmd") == "warn" and "You are sending too much text. Wait a moment try again.\nPress the up arrow key to restore your last message." in message.get("text", ""):
                     break
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
