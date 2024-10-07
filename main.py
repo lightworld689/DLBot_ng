@@ -124,9 +124,6 @@ async def join_channel(nick, password, channel, ws_link):
 
                 if message.get("cmd") == "warn" and "You are sending too much text. Wait a moment and try again." in message.get("text", ""):
                     break
-
-                if message.get("cmd") == "warn" and "You already have that name" not in message.get("text", ""):
-                    break
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     from_user = message.get("from")
