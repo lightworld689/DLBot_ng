@@ -124,6 +124,9 @@ async def join_channel(nick, password, channel, ws_link):
 
                 if message.get("cmd") == "warn" and "You are sending too much text. Wait a moment and try again." in message.get("text", ""):
                     break
+
+                if message.get("cmd") == "warn" and "You already have that name" not in message.get("text", ""):
+                    break
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     from_user = message.get("from")
@@ -180,6 +183,9 @@ async def join_channel(nick, password, channel, ws_link):
                     startup_message = {"cmd": "chat", "text": "DLBot检测到异常退出，并且顺利重启。 使用`$help`查看帮助。", "customId": "0"}
                     await websocket.send(json.dumps(startup_message))
                     log_message("发送消息", json.dumps(startup_message))
+                    cnick_message = {"cmd": "changenick", "nick": "DLBot", "customId": "0"}
+                    await websocket.send(json.dumps(cnick_message))
+                    log_message("系统提示", "已修改昵称为DLBot")
 
                 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
