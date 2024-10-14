@@ -9,6 +9,7 @@ from aiohttp import web
 import urllib.parse
 import logging
 import sqlite3
+import sys
 
 # 初始化数据库
 def init_db():
@@ -211,7 +212,7 @@ async def join_channel(nick, password, channel, ws_link):
                     cnick_message = {"cmd": "changenick", "nick": current_nick, "customId": "0"}
                     await ws.send(json.dumps(cnick_message))
                     log_message("系统提示", f"已修改昵称为 {current_nick}")
-                
+            
 
                 if message.get("cmd") == "info" and message.get("type") == "whisper":
                     trip = message.get("trip")
@@ -269,7 +270,8 @@ async def join_channel(nick, password, channel, ws_link):
                         "text": r"""| 指令 | 用途 | 用法 | 需要的权限 |
 | --- | --- | --- | --- |
 | $help | 显示本页面 | `$help` | 无 |
-| $whoami | 设置身份描述 | `$whoami <描述>` （清除： `$whoami<空格>`） | 需要有识别码（使用密码登录） |""",
+| $whoami | 设置身份描述 | `$whoami <描述>` （清除： `$whoami<空格>`） | 需要有识别码（使用密码登录） |
+| $reload | 重载代码 | `$reload` | 需要是受信任的用户 |""",
                         "customId": "0"
                     }
                     await ws.send(json.dumps(help_message))
@@ -280,20 +282,16 @@ async def join_channel(nick, password, channel, ws_link):
                     if trip in trustedusers:
                         log_message("系统日志", "Trusted user initiated reload, reloading...")
                         try:
-                            with open("main.py", "r", encoding="utf-8") as file:
-                                code = file.read()
-                            exec(code, globals())
-                            success_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载成功。", "customId": "0"}
-                            await ws.send(json.dumps(success_message))
-                            log_message("发送消息", json.dumps(success_message))
+                            os.execl(sys.executable, sys.executable, *sys.argv)
                         except Exception as e:
-                            error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 代码重载失败: {str(e)}", "customId": "0"}
+                            error_message = {"cmd": "chat", "text": f"重载失败: {str(e)}", "customId": "0"}
                             await ws.send(json.dumps(error_message))
                             log_message("发送消息", json.dumps(error_message))
                     else:
-                        error_message = {"cmd": "chat", "text": f"@{message.get('nick', 'Unknown')} 你在干什么？你好像不是一个被信任的用户。", "customId": "0"}
+                        error_message = {"cmd": "chat", "text": "Access denied", "customId": "0"}
                         await ws.send(json.dumps(error_message))
                         log_message("发送消息", json.dumps(error_message))
+
             except websockets.ConnectionClosed:
                 log_message("系统日志", "Connection lost, attempting to reconnect...")
                 send_color_task.cancel()
