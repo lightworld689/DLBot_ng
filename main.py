@@ -332,6 +332,7 @@ async def join_channel(nick, password, channel, ws_link):
         except (websockets.ConnectionClosed, websockets.InvalidHandshake, websockets.InvalidURI, OSError) as e:
             log_message("系统日志", f"Connection error: {e}, retrying in 5 seconds...")
             await asyncio.sleep(5)
+        await asyncio.sleep(5)
 
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
