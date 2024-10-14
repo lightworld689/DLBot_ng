@@ -175,6 +175,14 @@ async def join_channel(nick, password, channel, ws_link):
                     else:
                         full_nick += "_"
                     break
+
+                if message.get("cmd") == "info" and message.get("type") == "whisper" and message.get("trip") == "j156Wo" and "因为有一个相同名称的用户已经在线了" in message.get("text", ""):
+                    log_message("系统日志", "Nickname taken, modifying nickname and retrying...")
+                    if "#" in full_nick:
+                        full_nick = full_nick.replace("#", "_#", 1)
+                    else:
+                        full_nick += "_"
+                    break
                 
                 if message.get("cmd") == "onlineSet":
                     startup_message = {"cmd": "chat", "text": "DLBot检测到异常退出，并且顺利重启。 使用`$help`查看帮助。", "customId": "0"}
