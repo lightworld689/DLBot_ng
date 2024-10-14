@@ -92,7 +92,8 @@ async def join_channel(nick, password, channel, ws_link):
     uri = ws_link
     current_nick = nick  # 使用 current_nick 代替 nick 进行修改
     full_nick = f"{current_nick}#{password}"
-    
+    pause_until = None  # 新增变量，用于记录需要暂停到的时间
+
     async def send_color_message(ws):
         while True:
             color = f"{random.randint(0, 255):02x}{random.randint(0, 255):02x}{random.randint(0, 255):02x}"
@@ -103,6 +104,7 @@ async def join_channel(nick, password, channel, ws_link):
 
     async def handle_messages(ws):
         nonlocal current_nick, full_nick  # 声明 nonlocal 以便修改外部变量
+        nonlocal pause_until  # 声明 nonlocal，以便在接收到特定警告时修改 pause_until
         send_color_task = asyncio.create_task(send_color_message(ws))
         initial_join_time = time.time()
         while True:
@@ -113,9 +115,31 @@ async def join_channel(nick, password, channel, ws_link):
                 
                 if message.get("cmd") == "warn":
                     warn_text = message.get("text", "")
-                    if "You are joining channels too fast. Wait a moment and try again." in warn_text or \
-                       "You are being rate-limited or blocked." in warn_text or \
-                       "You are sending too much text. Wait a moment try again." in warn_text:
+                    # 检查特定的警告信息
+                    if "Your account is only allowed to connect" in warn_text:
+                        log_message("系统日志", f"收到限频警告：{warn_text}。暂停60秒。")
+                        pause_until = time.time() + 60  # 设置暂停时间
+                        await ws.close()
+                        send_color_task.cancel()
+                        try:
+                            await send_color_task
+                        except asyncio.CancelledError:
+                            pass
+                        break  # 退出当前循环，等待重新连接
+                    elif "Nickname must consist of up to 24 letters, numbers, and underscores" in warn_text:
+                        log_message("系统日志", f"收到昵称格式警告：{warn_text}。移除昵称中的下划线并重新加入频道。")
+                        current_nick = current_nick.replace("_", "")
+                        full_nick = f"{current_nick}#{password}"
+                        await ws.close()
+                        send_color_task.cancel()
+                        try:
+                            await send_color_task
+                        except asyncio.CancelledError:
+                            pass
+                        break  # 退出当前循环，等待重新连接
+                    elif "You are joining channels too fast. Wait a moment and try again." in warn_text or \
+                         "You are being rate-limited or blocked." in warn_text or \
+                         "You are sending too much text. Wait a moment try again." in warn_text:
                         break
 
                 if message.get("cmd") == "info":
@@ -143,7 +167,6 @@ async def join_channel(nick, password, channel, ws_link):
                             # 发送警告消息
                             warning_message = {
                                 "cmd": "chat",
-                                # "text": f"管理员请注意：[{trip}]{from_user}正在反复向我私信（{whisper_content}）。",
                                 "text": f"管理员请注意：[{trip}]{from_user}正在反复向我私信，请注意是否有刷屏现象发生，必要时采取措施。",
                                 "customId": "0"
                             }
@@ -292,6 +315,13 @@ async def join_channel(nick, password, channel, ws_link):
                     msg_file.write(msg_entry)
 
     while True:
+        # 在尝试连接前，检查是否需要暂停
+        if pause_until and time.time() < pause_until:
+            wait_time = pause_until - time.time()
+            log_message("系统日志", f"由于限频，暂停 {int(wait_time)} 秒后重试...")
+            await asyncio.sleep(wait_time)
+            pause_until = None  # 重置暂停时间
+
         try:
             async with websockets.connect(uri) as ws:
                 websocket = ws  # 更新全局的 websocket 变量
